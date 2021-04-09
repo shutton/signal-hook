@@ -636,6 +636,11 @@ pub fn unregister(id: SigId) -> bool {
     let mut sigdata = SignalData::clone(&lock);
     if let Some(slot) = sigdata.signals.get_mut(&id.signal) {
         replace = slot.actions.remove(&id.action).is_some();
+        if slot.actions.is_empty()
+            && unsafe { libc::sigaction(id.signal, &slot.prev.info, ptr::null_mut()) } != 0
+        {
+            panic!("sigaction() returned OS Error {}", Error::last_os_error())
+        }
     }
     if replace {
         lock.store(sigdata);
